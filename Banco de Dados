@@ -1,0 +1,128 @@
+-- Criação do banco de dados
+CREATE DATABASE sistema_player_media;
+USE sistema_player_media;
+
+-- Tabela de cadastro de usuários comuns (apenas espectadores)
+CREATE TABLE cadastro_usuario (
+    id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    senha VARCHAR(255) NOT NULL,
+    data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status_conta ENUM('ativo', 'inativo', 'suspenso') DEFAULT 'ativo',
+    ultimo_login DATETIME
+);
+
+-- Tabela de cadastro de administradores
+CREATE TABLE cadastro_adm (
+    id_adm INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    senha VARCHAR(255) NOT NULL,
+    nivel_acesso ENUM('basico', 'medio', 'alto') DEFAULT 'medio',
+    data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ultimo_login DATETIME
+);
+
+-- Tabela para cadastro de vídeos (apenas administradores podem fazer upload)
+CREATE TABLE cadastrar_video (
+    id_video INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(255) NOT NULL,
+    descricao TEXT,
+    caminho_arquivo VARCHAR(255) NOT NULL,
+    formato VARCHAR(10) NOT NULL,
+    duracao TIME,
+    tamanho BIGINT, -- em bytes
+    data_upload DATETIME DEFAULT CURRENT_TIMESTAMP,
+    id_adm_upload INT NOT NULL,
+    publico BOOLEAN DEFAULT TRUE,
+    tags VARCHAR(255),
+    FOREIGN KEY (id_adm_upload) REFERENCES cadastro_adm(id_adm)
+);
+
+-- Tabela para edição de vídeos (histórico de alterações por administradores)
+CREATE TABLE editar_video (
+    id_edicao INT AUTO_INCREMENT PRIMARY KEY,
+    id_video INT NOT NULL,
+    id_adm_editor INT NOT NULL,
+    data_edicao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    alteracoes TEXT NOT NULL,
+    versao INT NOT NULL,
+    FOREIGN KEY (id_video) REFERENCES cadastrar_video(id_video),
+    FOREIGN KEY (id_adm_editor) REFERENCES cadastro_adm(id_adm)
+);
+
+-- Tabela para cadastro de imagens (apenas administradores podem fazer upload)
+CREATE TABLE cadastrar_img (
+    id_imagem INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(255) NOT NULL,
+    descricao TEXT,
+    caminho_arquivo VARCHAR(255) NOT NULL,
+    formato VARCHAR(10) NOT NULL,
+    resolucao VARCHAR(20),
+    tamanho BIGINT, -- em bytes
+    data_upload DATETIME DEFAULT CURRENT_TIMESTAMP,
+    id_adm_upload INT NOT NULL,
+    publico BOOLEAN DEFAULT TRUE,
+    tags VARCHAR(255),
+    FOREIGN KEY (id_adm_upload) REFERENCES cadastro_adm(id_adm)
+);
+
+-- Tabela para edição de imagens (histórico de alterações por administradores)
+CREATE TABLE editar_img (
+    id_edicao INT AUTO_INCREMENT PRIMARY KEY,
+    id_imagem INT NOT NULL,
+    id_adm_editor INT NOT NULL,
+    data_edicao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    alteracoes TEXT NOT NULL,
+    versao INT NOT NULL,
+    FOREIGN KEY (id_imagem) REFERENCES cadastrar_img(id_imagem),
+    FOREIGN KEY (id_adm_editor) REFERENCES cadastro_adm(id_adm)
+);
+
+-- Tabela para configuração da tela hospedeira
+CREATE TABLE configuracao_tela (
+    id_adm_config INT AUTO_INCREMENT PRIMARY KEY,
+    nome_tela VARCHAR(100) NOT NULL,
+    endereco_ip VARCHAR(15),
+    localizacao VARCHAR(255),
+    ultima_atualizacao DATETIME,
+    layout VARCHAR(50) DEFAULT 'padrao',
+    tempo_exibicao INT DEFAULT 10, -- em segundos
+    ordem_reproducao ENUM('sequencial', 'aleatorio') DEFAULT 'sequencial',
+    FOREIGN KEY (id_adm_config) REFERENCES cadastro_adm(id_adm)
+);
+
+-- Tabela para programação de conteúdo
+CREATE TABLE programacao_conteudo (
+    id_programacao INT AUTO_INCREMENT PRIMARY KEY,
+    id_config INT NOT NULL,
+    id_video INT,
+    id_imagem INT,
+    data_inicio DATETIME NOT NULL,
+    data_fim DATETIME,
+    prioridade INT DEFAULT 1,
+    repetir ENUM('diario', 'semanal', 'mensal', 'unico') DEFAULT 'unico',
+    dias_semana VARCHAR(20), -- para repetição semanal (ex: "2,4,6" para terça, quinta, sábado)
+    id_adm_programador INT NOT NULL,
+    FOREIGN KEY (id_config) REFERENCES configuracao_tela(id_adm_config),
+    FOREIGN KEY (id_video) REFERENCES cadastrar_video(id_video),
+    FOREIGN KEY (id_imagem) REFERENCES cadastrar_img(id_imagem),
+    FOREIGN KEY (id_adm_programador) REFERENCES cadastro_adm(id_adm)
+);
+
+cadastro_usuario: Armazena informações dos usuários comuns do sistema (apenas espectadores)
+
+cadastro_adm: Armazena informações dos administradores com níveis de acesso
+
+cadastrar_video: Contém os metadados dos vídeos armazenados no sistema (upload apenas por admins)
+
+editar_video: Registra o histórico de edições feitas nos vídeos (apenas por admins)
+
+cadastrar_img: Armazena os metadados das imagens do sistema (upload apenas por admins)
+
+editar_img: Registra o histórico de edições feitas nas imagens (apenas por admins)
+
+configuracao_tela: Configurações das telas hospedeiras que exibirão o conteúdo
+
+programacao_conteudo: Define qual conteúdo será exibido em qual tela e quando (gerenciado por admins)
